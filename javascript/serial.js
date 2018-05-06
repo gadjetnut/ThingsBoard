@@ -23,7 +23,7 @@
 const thingsboardHost = "127.0.0.1";
 
 //Set Fahrenheit=0 display in centigrade
-const Fahrenheit=0;
+const Fahrenheit=1;
 
 var mqtt = require('mqtt');
 var accessToken = "myI0OZmaJDCalm1O5r8E";

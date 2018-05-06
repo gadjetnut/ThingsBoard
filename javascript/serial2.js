@@ -1,4 +1,4 @@
-/*serial.js Interface between RF Module serial interface and ThingsBoard
+/*serial2.js Interface between RF Module serial interface and ThingsBoard
 ---------------------------------------------------------------------------------                                                                               
  J. Evans May 2018
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
@@ -12,21 +12,37 @@
  V1.00 - Release
 
  Instructions:
- Update the ThingsBoard ip address and AccessToken. All wireless modules telemetry are 
- sent to a single ThingsBoard device. You can create many ThingsBoard widgets from the same 
- device using the "Latest Telemetry" option on the device. This methos is easier than creating
- a device per wireless module (see serial2.js if that's what you want to do).
+ Update the ThingsBoard ip address and the table below with your DeviceID's, 
+ ThingsBoard AccessTokens, and message type. This version will send each wireless 
+ device's telemetry to a specific ThingsBoard device (see accessTokenTable below)
+ 
+ Message Types:
+ TMP - Temperature
+ HUM - Humidity
+ BUTTON - Switch 
+ BATT - Battery level
+ SLEEPING - Sensor sleeping
+ AWAKE - Sensor awake
+ STARTED - Sensor started
  
  -----------------------------------------------------------------------------------
 */
 //ThingsBoard IP address
 const thingsboardHost = "127.0.0.1";
+var accessTokenTable = [
+//These are just examples. Delete these values and insert your own
+//Device ID, Access Token, Message Type
+["45", "PhrSAgljUiikoBlDL9v6", "TMP"],
+["21", "Qr0d7JC4ZJFEOGkJd3I8", "TMP"],
+["90", "TM6XvPlhpTzdW29liDWH", "TMP"],
+["61", "uAk8xrkramrq8cBNl6Hl", "TMP"]
+];
 
 //Set Fahrenheit=0 display in centigrade
 const Fahrenheit=0;
 
 var mqtt = require('mqtt');
-var accessToken = "myI0OZmaJDCalm1O5r8E";
+var accessToken = "";
 var SerialPort = require('serialport');
 var port = new SerialPort('/dev/ttyAMA0');
 var inStr="";
@@ -39,7 +55,17 @@ var data = {
 var mqtt = require('mqtt');
 var client;
 
-connectMQTT();
+//connectMQTT();
+
+function lookupToken(deviceID, command){
+	var arrayLength = accessTokenTable.length;
+	for (var i = 0; i < arrayLength; i++) {
+		if (accessTokenTable[i][0]==deviceID && accessTokenTable[i][2]==command){
+			return accessTokenTable[i][1];
+			}
+		}
+	return -1;
+}
 
 function connectMQTT(){
 	client  = mqtt.connect('mqtt://'+ thingsboardHost, { username: accessToken });			
@@ -91,8 +117,6 @@ port.on('readable', function () {
   var n;
   var deviceID;
   var payload;
-  var jsonData;
-  
   inStr+=port.read().toString('utf8');
   n = inStr.search("a"); //start charachter for llap message
   if (n>0) inStr = inStr.substring(n, inStr.length); //chop off data preceding start charachter
@@ -147,10 +171,16 @@ port.on('readable', function () {
 					data.value=data.value.toFixed(2);
 				}
 			}
-			jsonData="{'"+data.deviceID+data.command+"':"+data.value+"}";
-			console.log(jsonData);
-			client.publish('v1/devices/me/telemetry', jsonData);
-			console.log('Connecting to: %s using access token: %s', thingsboardHost, accessToken);
+			accessToken=lookupToken(data.deviceID, data.command);
+			if (accessToken!=-1){
+				connectMQTT();
+				client.publish('v1/devices/me/telemetry', JSON.stringify(data));
+				console.log(JSON.stringify(data));
+				console.log('Connecting to: %s using access token: %s', thingsboardHost, accessToken);
+			}
+			else {
+				console.log("Message not sent because not in lookup table");
+			}
 		}
 		if (inStr.length>12) 
 			inStr=inStr.substring(12,inStr.length);

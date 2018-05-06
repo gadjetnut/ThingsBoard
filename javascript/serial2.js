@@ -39,7 +39,7 @@ var accessTokenTable = [
 ];
 
 //Set Fahrenheit=0 display in centigrade
-const Fahrenheit=0;
+const Fahrenheit=1;
 
 var mqtt = require('mqtt');
 var accessToken = "";

@@ -1,6 +1,6 @@
 # RF Module interface to ThingsBoard
 
-Uses serialport: https://www.npmjs.com/package/serialport
+Install serialport: https://www.npmjs.com/package/serialport
 
 serial.js is the RF Module interface to ThingsBoard
 
